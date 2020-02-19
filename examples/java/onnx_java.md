@@ -45,8 +45,12 @@ import numpy as np
 from PIL import Image
 import torchvision.transforms as transforms
 import onnxruntime
-from matplotlib.image import imread
-dl_path = os.path.abspath("./src/main/resources/data/facedetector/facedetector.onnx")
+
+if os.path.isdir("java/src/main/resources/data/facedetector"):
+    dl_path = os.path.abspath("java/src/main/resources/data/facedetector/facedetector.onnx")
+else:
+    dl_path = os.path.abspath("./src/main/resources/data/facedetector/facedetector.onnx")
+
 sys.path.append(dl_path)
 a,b,c,d=inputimage.shape
 inputimage=inputimage.reshape(b,c,d)
@@ -74,14 +78,20 @@ _, boxes = ort_outs
 - Here we use the `pythonCodePath` argument instead of `pythonCode`, in order to specify the location of the Python script.
 - Define the inputs and outputs name and type of the value as defined by the name() method of a PythonVariables.Type, here we use NDARRAY. See <https://serving.oss.konduit.ai/python> for supported data types.
 - To run this example please install (PIL 6.21,numpy,matplotlib 3.1.2,onnxruntime 1.1.0, torchvision 0.4.2)and set the python path as `pythonPath(pythonPath)` in the `python_config` to refer the required Python libraries.
+- To find the python path, execute the following script on CLI: 
+`python -c "import sys, os; print(os.pathsep.join([path for path in sys.path if path]))"`
+and replace the variable `pythonPath` down below instead of `null`.
 
 ```java
- String pythonCodePath = new ClassPathResource("scripts/onnxFacedetect.py").getFile().getAbsolutePath();
+String pythonCodePath = new ClassPathResource("scripts/onnxFacedetect.py").getFile().getAbsolutePath();
 
-String pythonPath = Arrays.stream(cachePackages())
-        .filter(Objects::nonNull)
-        .map(File::getAbsolutePath)
-        .collect(Collectors.joining(File.pathSeparator));
+String pythonPath = null;
+
+Preconditions.checkNotNull(pythonPath, "\"pythonPath\" variable shouldn't be null. " +
+    "\n\nTo run this example please install (PIL 6.21, numpy, onnxruntime 1.1.0, torchvision 0.4.2) and\n" +
+    "set the \"pythonPath\" variable in this example to refer to the required Python libraries.\n" +
+    "To find the python path, execute the following script on CLI:\n" +
+    "\npython -c \"import sys, os; print(os.pathsep.join([path for path in sys.path if path]))\"\n\n");
 
 PythonConfig python_config = PythonConfig.builder()
         .pythonCodePath(pythonCodePath)
@@ -139,10 +149,12 @@ FileUtils.write(configFile, inferenceConfiguration.toJson(), Charset.defaultChar
 
 Load a sample image and send the image as NDARRAY to the server for prediction.
 
-{% hint style="info" %} Accepted input and output data formats are as follows:
+{% hint style="info" %}
+Accepted input and output data formats are as follows:
 
-- Input: JSON, ARROW, IMAGE, ND4J and NUMPY.
-- Output: NUMPY, JSON, ND4J and ARROW. {% endhint %}
+* Input: JSON, ARROW, IMAGE, ND4J and NUMPY.
+* Output: NUMPY, JSON, ND4J and ARROW.
+{% endhint %}
 
 The `Client` should be configured to match the Konduit Serving instance. As this example is run on a local computer, the server is located at host `'http://localhost'` and port `port`. And Finally, we run the Konduit Serving instance with the saved **config.json** file path as `configPath` and other necessary server configuration arguments.
 
@@ -152,21 +164,21 @@ A Callback Function onSuccess is implemented in order to post the Client request
 File imageOnnx = new ClassPathResource("data/facedetector/OnnxImageTest.jpg").getFile();
 
 KonduitServingMain.builder()
-    .onSuccess(() -> {
-        try {
-            HttpResponse<JsonNode> response = Unirest.post(String.format("http://localhost:%s/raw/json", port))
-                    .header("Content-Type", "application/json")
-                    .body("{\"first\" :\"value\"}").asJson();
+  .onSuccess(() -> {
+      try {
+          String response = Unirest.post(String.format("http://localhost:%s/raw/image", port))
+                  .field("inputimage", imageOnnx)
+                  .asString().getBody();
 
-            System.out.println(response.getBody().toString());
-            System.exit(0);
-        } catch (UnirestException e) {
-            e.printStackTrace();
-            System.exit(0);
-        }
-    })
-    .build()
-    .runMain("--configPath", configFile.getAbsolutePath());
+          System.out.println(response);
+          System.exit(0);
+      } catch (UnirestException e) {
+          e.printStackTrace();
+          System.exit(0);
+      }
+  })
+  .build()
+  .runMain("--configPath", configFile.getAbsolutePath());
 ```
 
 ## Confirm the output

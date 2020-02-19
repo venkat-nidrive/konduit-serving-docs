@@ -177,10 +177,12 @@ To configure the client, set the required URL to connect server and specify any 
 
 A Callback Function onSuccess is implemented in order to post the Client request and get the HttpResponse, only after the successful run of the KonduitServingMain Server.
 
-{% hint style="info" %} Accepted input and output data formats are as follows:
+{% hint style="info" %}
+Accepted input and output data formats are as follows:
 
-- Input: JSON, ARROW, IMAGE, ND4J and NUMPY.
-- Output: NUMPY, JSON, ND4J and ARROW. {% endhint %}
+* Input: JSON, ARROW, IMAGE, ND4J and NUMPY.
+* Output: NUMPY, JSON, ND4J and ARROW.
+{% endhint %}
 
 Note that we consider only one test image in this example.
 
